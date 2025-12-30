@@ -1,28 +1,32 @@
 import streamlit as st
 import requests
 
-# 1. SETUP: Page Config & Title
+# 1. SETUP: Page Config
 st.set_page_config(page_title="Movie Finder", page_icon="🎬")
 st.title("🎬 Movie & Review Finder")
 
-# 2. API KEY (Replace this with your actual key!)
-API_KEY = "e2bc8333847254ab7e3dc139f393e885"  # <--- DOUBLE CHECK THIS!
+# 2. API KEY
+API_KEY = "e2bc8333847254ab7e3dc139f393e885" 
 
-# 3. FUNCTION DEFINITION
-def get_movie_data(movie_name):
+# 3. REGION SELECTOR (New Feature!)
+st.sidebar.header("Settings")
+country_map = {"India": "IN", "USA": "US", "UK": "GB", "Canada": "CA", "Australia": "AU"}
+selected_country = st.sidebar.selectbox("Select Streaming Region:", list(country_map.keys()))
+region_code = country_map[selected_country]
+
+# 4. FUNCTION DEFINITION (Now uses 'region_code')
+def get_movie_data(movie_name, region):
     try:
         search_url = f"https://api.themoviedb.org/3/search/movie?api_key={API_KEY}&query={movie_name}"
         response = requests.get(search_url)
         res = response.json()
 
-        # Safety Check 1: API Error
         if 'results' not in res:
-            st.error(f"TMDb Error: {res.get('status_message', 'Invalid Key or Connection')}")
+            st.error("API Error: Invalid Key or Connection")
             return None, None, None
 
-        # Safety Check 2: No Results
         if not res['results']:
-            st.warning("No movies found with that name.")
+            st.warning("No movies found.")
             return None, None, None
         
         movie_id = res['results'][0]['id']
@@ -35,27 +39,24 @@ def get_movie_data(movie_name):
         review_url = f"https://api.themoviedb.org/3/movie/{movie_id}/reviews?api_key={API_KEY}"
         rev_res = requests.get(review_url).json()
         
-        return res['results'][0], ott_res.get('results', {}).get('IN', {}), rev_res.get('results', [])
+        # USE THE SELECTED REGION HERE
+        return res['results'][0], ott_res.get('results', {}).get(region, {}), rev_res.get('results', [])
 
     except Exception as e:
-        st.error(f"Critical Error: {e}")
+        st.error(f"Error: {e}")
         return None, None, None
 
-# 4. USER INPUT
+# 5. MAIN APP LOGIC
 movie_query = st.text_input("Enter a movie name:", "Inception")
 
-# 5. BUTTON & LOGIC (The part that makes it NOT blank!)
 if st.button("Search") or movie_query:
     if movie_query:
-        with st.spinner("Searching..."):
-            # CALL THE FUNCTION
-            data, ott, reviews = get_movie_data(movie_query)
+        with st.spinner(f"Searching in {selected_country}..."):
+            # Pass the selected region_code to the function
+            data, ott, reviews = get_movie_data(movie_query, region_code)
             
-            # DISPLAY RESULTS
             if data:
                 st.header(data['title'])
-                
-                # Layout: Image on Left, Info on Right
                 col1, col2 = st.columns([1, 2])
                 
                 with col1:
@@ -67,13 +68,13 @@ if st.button("Search") or movie_query:
                     st.write(f"**Rating:** {data.get('vote_average', 'N/A')} ⭐")
                     st.write(f"**Overview:** {data.get('overview', '')}")
                 
-                # Show OTT Links
-                st.subheader("📺 Where to Watch (India)")
+                # Show OTT Links for SELECTED Region
+                st.subheader(f"📺 Where to Watch ({selected_country})")
                 if ott and 'flatrate' in ott:
                     for platform in ott['flatrate']:
                         st.write(f"- {platform['provider_name']}")
                 else:
-                    st.info("No streaming information found for this region.")
+                    st.info(f"No streaming found in {selected_country}.")
 
                 # Show Reviews
                 st.subheader("💬 Reviews")
