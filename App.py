@@ -6,7 +6,7 @@ st.set_page_config(page_title="Movie Finder", page_icon="🎬")
 st.title("🎬 Movie & Review Finder")
 
 # 2. API KEY (Replace this with your actual key!)
-API_KEY = "YOUR_ACTUAL_API_KEY_HERE"  # <--- DOUBLE CHECK THIS!
+API_KEY = "e2bc8333847254ab7e3dc139f393e885"  # <--- DOUBLE CHECK THIS!
 
 # 3. FUNCTION DEFINITION
 def get_movie_data(movie_name):
